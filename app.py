@@ -106,6 +106,9 @@ def draw_comment():
 @app.errorhandler(429)
 def ratelimit_handler(e):
     return {"error": "Çok fazla istek gönderdiniz. Lütfen biraz bekleyin."}, 429
-
+    
 if __name__ == "__main__":
-    app.run(debug=True)
+    # Render kendi PORT environment değişkenini verir
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
+
