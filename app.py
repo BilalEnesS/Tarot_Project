@@ -71,13 +71,24 @@ def draw_cards():
 def draw_comment():
     data = request.get_json()
     cards = data.get("cards", [])
+    context = data.get("context", None)
     descriptions = []
     for card in cards:
         desc = f"Kart: {card['name']}\nAnlam (aydınlık): {card['meanings']['light']}\nAnlam (gölge): {card['meanings']['shadow']}\nAnahtar Kelimeler: {', '.join(card['keywords'])}\n"
         descriptions.append(desc)
-    prompt = "Sen bir tarot uzmanısın. Kullanıcı aşağıdaki 6 kartı çekti:\n\n"
-    prompt += "\n".join(descriptions)
-    prompt += "\n\nBu 6 kartı birlikte yorumla ve mistik ama pozitif bir dille genel bir tarot açılımı yap. Cevabını Türkçe yaz."
+    if len(cards) == 1:
+        prompt = "Kullanıcı bir kart çekti. Kart bilgileri:\n\n"
+        prompt += descriptions[0]
+        prompt += "\n\nBu kartı detaylı ve pozitif bir dille yorumla. Cevabını Türkçe yaz."
+    elif len(cards) == 3:
+        konu = f"Konu: {context.capitalize()}\n" if context else ""
+        prompt = f"Kullanıcı üç kart çekti. {konu}Kart bilgileri:\n\n"
+        prompt += "\n".join(descriptions)
+        prompt += "\n\nBu 3 kartı birlikte, seçilen konuya (" + (context if context else "belirtilmedi") + ") göre detaylı ve pozitif bir dille yorumla. Cevabını Türkçe yaz."
+    else:
+        prompt = "Sen bir tarot uzmanısın. Kullanıcı aşağıdaki 6 kartı çekti:\n\n"
+        prompt += "\n".join(descriptions)
+        prompt += "\n\nBu 6 kartı birlikte yorumla ve mistik ama pozitif bir dille genel bir tarot açılımı yap. Cevabını Türkçe yaz."
     try:
         response = client.chat.completions.create(
             model="gpt-4.1",

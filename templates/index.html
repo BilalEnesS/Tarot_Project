@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Tarot Kartları</title>
-    <link rel="icon" type="image/png" href="{{ url_for('static', filename='tarot.png') }}">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
     <style>
         body {
             font-family: 'Segoe UI', 'Arial', sans-serif;
@@ -12,6 +12,44 @@
             min-height: 100vh;
             margin: 0;
         }
+        /* NAVBAR */
+        .navbar {
+            width: 100vw;
+            background: linear-gradient(90deg, #e0c6ff 0%, #a259c6 100%);
+            box-shadow: 0 2px 12px 0 #a259c622;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .navbar-inner {
+            display: flex;
+            align-items: center;
+            gap: 36px;
+            padding: 12px 0;
+        }
+        .navbar-logo {
+            font-size: 2rem;
+            margin-right: 32px;
+        }
+        .navbar-link {
+            text-decoration: none;
+            color: #7c3aed;
+            font-size: 1.15rem;
+            font-weight: bold;
+            padding: 8px 22px;
+            border-radius: 8px;
+            transition: background 0.2s, color 0.2s;
+            cursor: pointer;
+            letter-spacing: 1px;
+        }
+        .navbar-link.active, .navbar-link:hover {
+            background: #f3f0ff;
+            color: #a259c6;
+        }
+        /* ANA KUTU */
         .main-box {
             background: rgba(255,255,255,0.97);
             border-radius: 18px;
@@ -33,6 +71,29 @@
             text-shadow: 0 2px 16px #fff, 0 0 8px #a259c6;
             color: #7c3aed;
             text-align: center;
+        }
+        .tarot-type-title {
+            font-size: 1.3rem;
+            color: #a259c6;
+            margin-bottom: 10px;
+            margin-top: 0;
+            text-align: center;
+        }
+        .tarot-type-select {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 18px;
+        }
+        .tarot-type-select label {
+            font-size: 1.1rem;
+            margin-bottom: 8px;
+        }
+        .tarot-type-select select {
+            font-size: 1.1rem;
+            padding: 6px 12px;
+            border-radius: 6px;
+            border: 1px solid #a259c6;
         }
         form#draw-form {
             display: flex;
@@ -187,11 +248,20 @@
     </style>
 </head>
 <body>
+    <nav class="navbar">
+        <div class="navbar-inner">
+            <span class="navbar-logo">🔮</span>
+            <a class="navbar-link active" id="nav-6">6 Kart Tarot</a>
+            <a class="navbar-link" id="nav-3">3 Kart Tarot</a>
+            <a class="navbar-link" id="nav-1">1 Kart Tarot</a>
+        </div>
+    </nav>
     <div class="main-box">
-        <h1>🔮 Tarot Kartı Yorumu</h1>
+        <h1 id="main-title">🔮 Tarot Kartı Yorumu</h1>
         <form id="draw-form">
             <button type="submit">✨ Kartları Çek</button>
         </form>
+        <div id="tarot-type-area"></div>
         <div id="cards-area"></div>
         <div id="loader-area" style="display:none;"></div>
         <div id="gpt-area"></div>
@@ -202,9 +272,74 @@
     const cardsArea = document.getElementById('cards-area');
     const loaderArea = document.getElementById('loader-area');
     const gptArea = document.getElementById('gpt-area');
+    const tarotTypeArea = document.getElementById('tarot-type-area');
+    const mainTitle = document.getElementById('main-title');
+    const nav6 = document.getElementById('nav-6');
+    const nav3 = document.getElementById('nav-3');
+    const nav1 = document.getElementById('nav-1');
+
+    let tarotType = '6'; // default
+    let tarotContext = null; // 3 kart için ilişki/kariyer
+
+    function setActiveNav(type) {
+        [nav6, nav3, nav1].forEach(btn => btn.classList.remove('active'));
+        if(type === '6') nav6.classList.add('active');
+        if(type === '3') nav3.classList.add('active');
+        if(type === '1') nav1.classList.add('active');
+    }
+
+    nav6.addEventListener('click', () => {
+        tarotType = '6';
+        tarotContext = null;
+        setActiveNav('6');
+        mainTitle.innerText = '🔮 Tarot Kartı Yorumu';
+        tarotTypeArea.innerHTML = '';
+        cardsArea.innerHTML = '';
+        gptArea.innerHTML = '';
+        loaderArea.innerHTML = '';
+        form.style.display = 'flex';
+    });
+    nav3.addEventListener('click', () => {
+        tarotType = '3';
+        tarotContext = null;
+        setActiveNav('3');
+        mainTitle.innerText = '3 Kart Tarot';
+        cardsArea.innerHTML = '';
+        gptArea.innerHTML = '';
+        loaderArea.innerHTML = '';
+        form.style.display = 'none';
+        tarotTypeArea.innerHTML = `<div class='tarot-type-select'>
+            <div class='tarot-type-title'>Hangi konuda tarot bakmak istersin?</div>
+            <label><input type='radio' name='context' value='ilişki'> İlişki</label>
+            <label><input type='radio' name='context' value='kariyer'> Kariyer</label>
+            <button id='start-3-tarot' style='margin-top:12px;'>3 Kart Çek</button>
+        </div>`;
+        document.getElementById('start-3-tarot').onclick = async function() {
+            const selected = document.querySelector('input[name="context"]:checked');
+            if(!selected) { alert('Lütfen bir konu seçin!'); return; }
+            tarotContext = selected.value;
+            await drawTarot(3, tarotContext);
+        };
+    });
+    nav1.addEventListener('click', () => {
+        tarotType = '1';
+        tarotContext = null;
+        setActiveNav('1');
+        mainTitle.innerText = '1 Kart Tarot';
+        tarotTypeArea.innerHTML = '';
+        cardsArea.innerHTML = '';
+        gptArea.innerHTML = '';
+        loaderArea.innerHTML = '';
+        form.style.display = 'none';
+        drawTarot(1);
+    });
 
     form.addEventListener('submit', async function(e) {
         e.preventDefault();
+        await drawTarot(6);
+    });
+
+    async function drawTarot(cardCount, context=null) {
         cardsArea.innerHTML = '';
         gptArea.innerHTML = '';
         loaderArea.innerHTML = '';
@@ -213,10 +348,11 @@
         // Kartları çekmek için önce kartları al
         const response = await fetch('/draw-cards', { method: 'POST' });
         const data = await response.json();
+        let selectedCards = data.cards.slice(0, cardCount);
 
         // Kartları hemen göster
         let cardsHtml = '<div class="card-container">';
-        data.cards.forEach(card => {
+        selectedCards.forEach(card => {
             cardsHtml += `<div class="tarot-card"><img src="/static/cards/${card.img}" alt="${card.name}"><p>${card.name}</p></div>`;
         });
         cardsHtml += '</div>';
@@ -230,7 +366,7 @@
         const commentResponse = await fetch('/draw-comment', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ cards: data.cards })
+            body: JSON.stringify({ cards: selectedCards, context: context })
         });
         const commentData = await commentResponse.json();
 
@@ -239,7 +375,7 @@
         // Markdown'dan HTML'ye çevir
         const yorumHtml = marked.parse(commentData.gpt_text);
         gptArea.innerHTML = `<div class="response-box"><h2>🔮 Senin kartlarına yorumum:</h2>${yorumHtml}</div>`;
-    });
+    }
     </script>
 </body>
 </html>
